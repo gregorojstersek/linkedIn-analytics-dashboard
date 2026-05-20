@@ -38,11 +38,10 @@ const elements = {
   filterSort: document.querySelector('[data-filter-sort]'),
   kpiPosts: document.querySelector('[data-kpi-posts]'),
   kpiImpressions: document.querySelector('[data-kpi-impressions]'),
-  kpiEngagement: document.querySelector('[data-kpi-engagement]'),
   kpiRate: document.querySelector('[data-kpi-rate]'),
-  trendChart: document.querySelector('[data-chart-trend]'),
-  topPostsChart: document.querySelector('[data-chart-top-posts]'),
-  typeMixChart: document.querySelector('[data-chart-type-mix]'),
+  kpiReactions: document.querySelector('[data-kpi-reactions]'),
+  kpiComments: document.querySelector('[data-kpi-comments]'),
+  kpiReposts: document.querySelector('[data-kpi-reposts]'),
   tableSummary: document.querySelector('[data-table-summary]'),
   tableRows: document.querySelector('[data-post-rows]'),
   detailBody: document.querySelector('[data-detail-body]'
@@ -327,10 +326,16 @@ function applyFilters() {
 function getKpis(posts) {
   let impressions = 0;
   let engagement = 0;
+  let reactions = 0;
+  let comments = 0;
+  let reposts = 0;
 
   for (const post of posts) {
     impressions += Number(post.impressions || 0);
     engagement += getPostEngagement(post);
+    reactions += Number(getMetricValue(post, 'reactions') || 0);
+    comments += Number(getMetricValue(post, 'comments') || 0);
+    reposts += Number(getMetricValue(post, 'reposts') || 0);
   }
 
   const averageRate = impressions > 0 ? engagement / impressions : 0;
@@ -339,17 +344,34 @@ function getKpis(posts) {
     totalPosts: posts.length,
     impressions,
     engagement,
-    averageRate
+    averageRate,
+    reactions,
+    comments,
+    reposts
   };
 }
 
 function renderKpis() {
   const kpis = getKpis(state.filtered);
 
-  elements.kpiPosts.textContent = formatNumber(kpis.totalPosts);
-  elements.kpiImpressions.textContent = formatNumber(kpis.impressions);
-  elements.kpiEngagement.textContent = formatNumber(kpis.engagement);
-  elements.kpiRate.textContent = percentFormat.format(kpis.averageRate);
+  if (elements.kpiPosts) {
+    elements.kpiPosts.textContent = formatNumber(kpis.totalPosts);
+  }
+  if (elements.kpiImpressions) {
+    elements.kpiImpressions.textContent = formatNumber(kpis.impressions);
+  }
+  if (elements.kpiRate) {
+    elements.kpiRate.textContent = percentFormat.format(kpis.averageRate);
+  }
+  if (elements.kpiReactions) {
+    elements.kpiReactions.textContent = formatNumber(kpis.reactions);
+  }
+  if (elements.kpiComments) {
+    elements.kpiComments.textContent = formatNumber(kpis.comments);
+  }
+  if (elements.kpiReposts) {
+    elements.kpiReposts.textContent = formatNumber(kpis.reposts);
+  }
 }
 
 function buildTrendSeries(posts) {
@@ -391,6 +413,9 @@ function pointsFromSeries(values, width, height, maxValue) {
 }
 
 function renderTrendChart() {
+  if (!elements.trendChart) {
+    return;
+  }
   const series = buildTrendSeries(state.filtered);
 
   if (series.length === 0) {
@@ -447,6 +472,9 @@ function renderTrendChart() {
 }
 
 function renderTopPostsChart() {
+  if (!elements.topPostsChart) {
+    return;
+  }
   const top = [...state.filtered]
     .sort((a, b) => getPostEngagement(b) - getPostEngagement(a))
     .slice(0, 6);
@@ -481,6 +509,9 @@ function renderTopPostsChart() {
 }
 
 function renderTypeMixChart() {
+  if (!elements.typeMixChart) {
+    return;
+  }
   if (state.filtered.length === 0) {
     elements.typeMixChart.innerHTML = '<p class="empty-copy">No type data available.</p>';
     return;
@@ -515,7 +546,7 @@ function renderTable() {
 
   if (state.filtered.length === 0) {
     elements.tableRows.innerHTML =
-      '<tr><td colspan="7" class="empty-copy">No posts match your filters.</td></tr>';
+      '<tr><td colspan="9" class="empty-copy">No posts match your filters.</td></tr>';
     return;
   }
 
@@ -527,9 +558,6 @@ function renderTable() {
       row.classList.add('active');
     }
     row.dataset.postId = post.id;
-
-    const dateCell = document.createElement('td');
-    dateCell.textContent = getPostDateLabel(post);
 
     const postCell = document.createElement('td');
     const media = document.createElement('div');
@@ -581,18 +609,28 @@ function renderTable() {
     const impressionsCell = document.createElement('td');
     impressionsCell.textContent = formatNumber(Number(post.impressions || 0));
 
-    const engagementCell = document.createElement('td');
-    engagementCell.textContent = formatNumber(getPostEngagement(post));
+    const reactionsCell = document.createElement('td');
+    reactionsCell.textContent = formatMetricValue(getMetricValue(post, 'reactions'));
+
+    const commentsCell = document.createElement('td');
+    commentsCell.textContent = formatMetricValue(getMetricValue(post, 'comments'));
+
+    const repostsCell = document.createElement('td');
+    repostsCell.textContent = formatMetricValue(getMetricValue(post, 'reposts'));
 
     const rateCell = document.createElement('td');
     rateCell.textContent = percentFormat.format(getEngagementRate(post));
 
-    row.appendChild(dateCell);
     row.appendChild(postCell);
+    const publishedCell = document.createElement('td');
+    publishedCell.textContent = getPostDateLabel(post);
+    row.appendChild(publishedCell);
     row.appendChild(typeCell);
     row.appendChild(originCell);
     row.appendChild(impressionsCell);
-    row.appendChild(engagementCell);
+    row.appendChild(reactionsCell);
+    row.appendChild(commentsCell);
+    row.appendChild(repostsCell);
     row.appendChild(rateCell);
 
     row.addEventListener('click', () => {
@@ -695,9 +733,6 @@ function renderAll() {
   applyFilters();
   renderHeader();
   renderKpis();
-  renderTrendChart();
-  renderTopPostsChart();
-  renderTypeMixChart();
   renderTable();
   renderDetail();
 }
