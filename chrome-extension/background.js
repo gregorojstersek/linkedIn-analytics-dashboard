@@ -162,16 +162,34 @@ async function extractLinkedInPostsFromDom(options = {}) {
       if (/^\d[\d,.\s]*\s*(reactions?|comments?|reposts?|impressions?|views?|likes?)$/.test(lower)) {
         return false;
       }
+      if (/^follow$/i.test(lower)) {
+        return false;
+      }
+      if (/^\d+\s*(h|hr|hrs|m|min|d|day|days|w|week|weeks|mo|month|months|yr|year|years)\b/i.test(lower)) {
+        return false;
+      }
       if (/and\s+\d[\d,.]*\s+others\s+reacted/.test(lower)) {
+        return false;
+      }
+      if (/^[a-z .'-]{2,40}\s+reposted\s+this$/i.test(lower)) {
+        return false;
+      }
+      if (/^[a-z .'-]{2,40}\s+shared\s+this$/i.test(lower)) {
+        return false;
+      }
+      if (/^[a-z .'-]{2,40}\s+•\s+/.test(line) && line.length < 120) {
         return false;
       }
       if (/^(like|comment|repost|send|share)$/i.test(lower)) {
         return false;
       }
+      if (/^(copy link|copy link to post|see translation|show translation)$/i.test(lower)) {
+        return false;
+      }
       return true;
     });
 
-    return cleaned.slice(0, 5).join(' ').replace(/\s+/g, ' ').trim();
+    return cleaned.slice(0, 16).join(' ').replace(/\s+/g, ' ').trim();
   }
 
   function extractPreviewImageUrl(node) {
@@ -267,6 +285,83 @@ async function extractLinkedInPostsFromDom(options = {}) {
       }
     }
     return '';
+  }
+
+  function collectCommentaryCandidates(node) {
+    const selectors = [
+      '[data-test-id="main-feed-activity-card__commentary"]',
+      '.feed-shared-update-v2__description-wrapper',
+      '.feed-shared-text',
+      '.update-components-update-v2__commentary',
+      '.update-components-text',
+      '.update-components-text-view',
+      '.attributed-text-segment-list__container',
+      '.feed-shared-inline-show-more-text',
+      'span.break-words'
+    ];
+
+    const candidates = [];
+    const seen = new Set();
+
+    for (const selector of selectors) {
+      for (const el of node.querySelectorAll(selector)) {
+        const text = cleanPostText(el.innerText || el.textContent || '');
+        if (!text || text.length < 20) {
+          continue;
+        }
+        const key = text.slice(0, 220);
+        if (seen.has(key)) {
+          continue;
+        }
+        seen.add(key);
+        candidates.push(text);
+      }
+    }
+
+    return candidates;
+  }
+
+  function scoreBodyCandidate(text) {
+    const words = text.split(/\s+/).filter(Boolean);
+    const lengthScore = Math.min(words.length, 80);
+    let score = lengthScore;
+
+    if (/\n|\.|,|!|\?/.test(text)) {
+      score += 8;
+    }
+    if (/^\s*[A-Z][a-z]+ [A-Z][a-z]+/.test(text)) {
+      score -= 10;
+    }
+    if (/\b(reposted this|shared this|followers|connections)\b/i.test(text)) {
+      score -= 18;
+    }
+    if (/[•|]/.test(text) && words.length < 20) {
+      score -= 12;
+    }
+
+    return score;
+  }
+
+  function extractPostBodyText(node) {
+    const selectorText = textFrom(node, [
+      '[data-test-id="main-feed-activity-card__commentary"]',
+      '.update-components-update-v2__commentary .update-components-text',
+      '.feed-shared-update-v2__description-wrapper',
+      '.feed-shared-text'
+    ]);
+
+    const cleanedSelectorText = cleanPostText(selectorText);
+    const candidates = collectCommentaryCandidates(node);
+    if (cleanedSelectorText) {
+      candidates.unshift(cleanedSelectorText);
+    }
+
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => scoreBodyCandidate(b) - scoreBodyCandidate(a));
+      return candidates[0];
+    }
+
+    return cleanPostText(node.innerText || '');
   }
 
   function findBestContext(node) {
@@ -481,15 +576,7 @@ async function extractLinkedInPostsFromDom(options = {}) {
       node.querySelector('a[href*="/posts/"]')?.href ||
       '';
 
-    const selectorText = textFrom(node, [
-      '.update-components-text',
-      '.feed-shared-update-v2__description-wrapper',
-      '.feed-shared-text',
-      '[data-test-id="main-feed-activity-card__commentary"]',
-      '[data-test-id="main-feed-activity-card__commentary"] span[dir="ltr"]'
-    ]);
-    const fallbackText = cleanPostText(node.innerText || '');
-    const bodyText = selectorText || fallbackText;
+    const bodyText = extractPostBodyText(node);
 
     if (!bodyText || bodyText.length < 8) {
       continue;
