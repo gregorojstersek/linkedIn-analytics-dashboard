@@ -152,7 +152,37 @@ async function extractLinkedInPostsFromDom(options = {}) {
   }
 
   function cleanPostText(rawText) {
-    const lines = String(rawText || '')
+    function stripLeadingMetadata(text) {
+      let normalized = String(text || '').replace(/\s+/g, ' ').trim();
+      if (!normalized) {
+        return '';
+      }
+
+      normalized = normalized
+        .replace(/(reposted this)([A-Z])/g, '$1 $2')
+        .replace(/(shared this)([A-Z])/g, '$1 $2')
+        .replace(
+          /(newsletter)(\d+\s*(?:h|hr|hrs|min|m|d|day|days|w|week|weeks|mo|month|months|yr|year|years))/gi,
+          '$1 $2'
+        );
+
+      const timeBulletMatch = normalized.match(
+        /\b\d+\s*(?:h|hr|hrs|min|m|d|day|days|w|week|weeks|mo|month|months|yr|year|years)\s*•\s*/i
+      );
+      if (timeBulletMatch?.index !== undefined) {
+        const tail = normalized
+          .slice(timeBulletMatch.index + timeBulletMatch[0].length)
+          .trim();
+        if (tail.length >= 20) {
+          return tail;
+        }
+      }
+
+      return normalized;
+    }
+
+    const stripped = stripLeadingMetadata(rawText);
+    const lines = String(stripped || '')
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean);
