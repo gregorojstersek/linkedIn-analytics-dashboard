@@ -1,0 +1,78 @@
+:root {
+  --bg: #f5f7fb;
+  --panel: #ffffff;
+  --text: #1d2433;
+  --muted: #5c6876;
+  --line: #d8dde8;
+  --brand: #1f4ed8;
+  --danger: #b42345;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 340px;
+  margin: 0;
+  padding: 10px;
+  font-family: 'Space Grotesk', 'Avenir Next', 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.popup {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 12px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.hint {
+  margin: 8px 0 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.stats {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8faff;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.stats p {
+  margin: 4px 0;
+  font-size: 0.84rem;
+}
+
+.actions {
+  display: grid;
+  gap: 8px;
+}
+
+button {
+  min-height: 36px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--brand);
+  color: #ffffff;
+  font: inherit;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #ffffff;
+  border-color: var(--line);
+  color: var(--text);
+}
+
+button.danger {
+  background: var(--danger);
+}

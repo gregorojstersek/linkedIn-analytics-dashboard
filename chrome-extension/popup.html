@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LinkedIn Sync</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <h1>LinkedIn Sync</h1>
+      <p class="hint">Open your LinkedIn posts/activity page, then capture and sync.</p>
+
+      <div class="stats">
+        <p><strong data-captured-count>0</strong> posts in extension storage</p>
+        <p data-status>Idle.</p>
+      </div>
+
+      <div class="actions">
+        <button type="button" data-action="capture">Capture Current Tab</button>
+        <button type="button" data-action="capture-all">Capture All Posts (Auto Scroll)</button>
+        <button type="button" data-action="sync" class="secondary">Send to Dashboard</button>
+        <button type="button" data-action="download" class="secondary">Download JSON</button>
+        <button type="button" data-action="clear" class="danger">Clear Extension Data</button>
+      </div>
+    </main>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LinkedIn Post Analytics</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="aurora" aria-hidden="true"></div>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Creator Intelligence</p>
+          <h1>LinkedIn Analytics Overview</h1>
+          <p class="subtext" data-last-updated>No posts loaded yet.</p>
+        </div>
+
+        <div class="topbar-actions">
+          <button type="button" data-refresh>Refresh</button>
+          <button type="button" data-seed class="secondary">Load Demo Data</button>
+          <button type="button" data-import-btn class="secondary">Import JSON</button>
+          <button type="button" data-clear class="danger">Clear All</button>
+          <input type="file" accept="application/json" data-file-input hidden />
+        </div>
+      </header>
+
+      <section class="filter-bar" aria-label="Filters">
+        <label>
+          Search
+          <input type="search" data-filter-search placeholder="keyword in post" />
+        </label>
+
+        <label>
+          Date Range
+          <select data-filter-range>
+            <option value="all">All time</option>
+            <option value="30">Last 30 days</option>
+            <option value="90" selected>Last 90 days</option>
+            <option value="180">Last 180 days</option>
+            <option value="365">Last 365 days</option>
+          </select>
+        </label>
+
+        <label>
+          Content Type
+          <select data-filter-type>
+            <option value="all">All types</option>
+          </select>
+        </label>
+
+        <label>
+          Min Impressions
+          <input type="number" min="0" value="0" step="100" data-filter-min-impressions />
+        </label>
+
+        <label>
+          Sort By
+          <select data-filter-sort>
+            <option value="latest">Latest</option>
+            <option value="oldest">Oldest</option>
+            <option value="impressions">Impressions</option>
+            <option value="engagement">Engagement</option>
+            <option value="engagementRate">Engagement Rate</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="kpi-grid" aria-label="Overview metrics">
+        <article class="kpi-card">
+          <p>Total Posts</p>
+          <h2 data-kpi-posts>0</h2>
+        </article>
+        <article class="kpi-card">
+          <p>Total Impressions</p>
+          <h2 data-kpi-impressions>0</h2>
+        </article>
+        <article class="kpi-card">
+          <p>Total Engagement</p>
+          <h2 data-kpi-engagement>0</h2>
+        </article>
+        <article class="kpi-card">
+          <p>Avg. Engagement Rate</p>
+          <h2 data-kpi-rate>0%</h2>
+        </article>
+      </section>
+
+      <section class="charts-grid" aria-label="Analytics charts">
+        <article class="panel">
+          <header class="panel-head">
+            <h3>Performance Over Time</h3>
+            <p>Impressions vs engagements by publishing day</p>
+          </header>
+          <div class="chart" data-chart-trend></div>
+        </article>
+
+        <article class="panel">
+          <header class="panel-head">
+            <h3>Top Posts</h3>
+            <p>Highest engagement in current filter</p>
+          </header>
+          <div class="chart" data-chart-top-posts></div>
+        </article>
+
+        <article class="panel full-width">
+          <header class="panel-head">
+            <h3>Content Mix</h3>
+            <p>Distribution by post format</p>
+          </header>
+          <div class="type-grid" data-chart-type-mix></div>
+        </article>
+      </section>
+
+      <section class="content-grid">
+        <article class="panel table-panel">
+          <header class="panel-head">
+            <h3>Posts</h3>
+            <p data-table-summary>0 matching posts</p>
+          </header>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Post</th>
+                  <th>Type</th>
+                  <th>Origin</th>
+                  <th>Impressions</th>
+                  <th>Engagement</th>
+                  <th>Rate</th>
+                </tr>
+              </thead>
+              <tbody data-post-rows></tbody>
+            </table>
+          </div>
+        </article>
+
+        <aside class="panel detail-panel" data-detail-panel>
+          <header class="panel-head">
+            <h3>Post Details</h3>
+            <p>Click a post in the table</p>
+          </header>
+          <div class="detail-body" data-detail-body>
+            <p class="empty-copy">No post selected yet.</p>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="./src/app.mjs"></script>
+  </body>
+</html>
