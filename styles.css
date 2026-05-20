@@ -1,6 +1,5 @@
 :root {
   --bg: #f3f3f5;
-  --sidebar: #f5f5f7;
   --panel: #ffffff;
   --line: #e4e4e7;
   --line-2: #d5d5db;
@@ -24,90 +23,15 @@ body {
   background: var(--bg);
 }
 
-.dashboard-shell {
-  display: grid;
-  grid-template-columns: 248px 1fr;
-  min-height: 100vh;
-}
-
-.sidebar {
-  border-right: 1px solid var(--line);
-  background: var(--sidebar);
-  padding: 18px 14px;
-  display: grid;
-  align-content: start;
-  gap: 22px;
-}
-
-.brand-mark {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: #1e1f24;
-  color: #ffffff;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.nav-block {
-  display: grid;
-  gap: 4px;
-}
-
-.nav-link {
-  color: var(--muted);
-  text-decoration: none;
-  font-size: 1.05rem;
-  padding: 8px 10px;
-  border-radius: 11px;
-}
-
-.nav-link.active {
-  color: var(--text);
-  border: 2px solid var(--accent);
-  background: #ffffff;
-  font-weight: 600;
-}
-
-.sidebar-group {
-  display: grid;
-  gap: 8px;
-}
-
-.group-title {
-  margin: 0;
-  font-size: 0.76rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-  font-weight: 700;
-}
-
-.group-item {
-  margin: 0;
-  color: #4a4a52;
-  font-size: 0.95rem;
-}
-
 .main-view {
   padding: 0;
+  min-height: 100vh;
 }
 
 .main-inner {
   padding: 18px;
   max-width: 1320px;
-}
-
-.notice-bar {
-  border: 1px solid #86868f;
-  border-radius: 12px;
-  background: #7a7a82;
-  color: #ffffff;
-  font-size: 0.95rem;
-  padding: 11px 14px;
-  margin-bottom: 14px;
+  margin: 0 auto;
 }
 
 .page-head {
@@ -412,16 +336,6 @@ tbody tr.active {
   color: var(--accent);
   text-decoration: none;
   font-weight: 600;
-}
-
-@media (max-width: 1180px) {
-  .dashboard-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    display: none;
-  }
 }
 
 @media (max-width: 900px) {

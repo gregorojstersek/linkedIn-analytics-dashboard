@@ -7,33 +7,8 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="dashboard-shell">
-      <aside class="sidebar">
-        <div class="brand-mark">S</div>
-
-        <nav class="nav-block">
-          <a class="nav-link" href="#">Home</a>
-          <a class="nav-link active" href="#">Posts</a>
-          <a class="nav-link" href="#">Profiles</a>
-        </nav>
-
-        <section class="sidebar-group">
-          <p class="group-title">Workspaces</p>
-          <p class="group-item">Gregor Ojstersek</p>
-        </section>
-
-        <section class="sidebar-group">
-          <p class="group-title">Organization</p>
-          <p class="group-item">People</p>
-          <p class="group-item">Settings</p>
-        </section>
-      </aside>
-
-      <main class="main-view">
-        <div class="main-inner">
-          <div class="notice-bar">
-            Shield-style analytics view. Last sync and activity are shown below.
-          </div>
+    <main class="main-view">
+      <div class="main-inner">
 
           <header class="page-head">
             <div>
@@ -126,18 +101,17 @@
             </div>
           </section>
 
-          <section class="panel detail-panel" data-detail-panel>
-            <header class="panel-head">
-              <h3>Post Details</h3>
-              <p>Click a row to inspect metrics</p>
-            </header>
-            <div class="detail-body" data-detail-body>
-              <p class="empty-copy">No post selected yet.</p>
-            </div>
-          </section>
-        </div>
-      </main>
-    </div>
+        <section class="panel detail-panel" data-detail-panel>
+          <header class="panel-head">
+            <h3>Post Details</h3>
+            <p>Click a row to inspect metrics</p>
+          </header>
+          <div class="detail-body" data-detail-body>
+            <p class="empty-copy">No post selected yet.</p>
+          </div>
+        </section>
+      </div>
+    </main>
 
     <script type="module" src="./src/app.mjs"></script>
   </body>
