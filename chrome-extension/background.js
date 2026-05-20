@@ -135,6 +135,19 @@ async function extractLinkedInPostsFromDom(options = {}) {
     return 0;
   }
 
+  function parseMetricOptionalLocal(text, patterns) {
+    const lower = String(text || '').toLowerCase();
+
+    for (const pattern of patterns) {
+      const match = lower.match(pattern);
+      if (match && match[1]) {
+        return parseAbbreviatedNumberLocal(match[1]);
+      }
+    }
+
+    return null;
+  }
+
   function inferContentTypeLocal(postNode) {
     if (postNode.querySelector('video')) {
       return 'video';
@@ -619,10 +632,23 @@ async function extractLinkedInPostsFromDom(options = {}) {
       new Date().toISOString();
 
     const textBlock = node.innerText || '';
-    const impressions = parseMetricLocal(textBlock, [/(\d[\d.,]*\s*[km]?)\s*impressions?/, /(\d[\d.,]*\s*[km]?)\s*views?/]);
-    const reactions = parseMetricLocal(textBlock, [/(\d[\d.,]*\s*[km]?)\s*reactions?/, /(\d[\d.,]*\s*[km]?)\s*likes?/]);
-    const comments = parseMetricLocal(textBlock, [/(\d[\d.,]*\s*[km]?)\s*comments?/]);
-    const reposts = parseMetricLocal(textBlock, [/(\d[\d.,]*\s*[km]?)\s*reposts?/, /(\d[\d.,]*\s*[km]?)\s*shares?/]);
+    const impressions = parseMetricLocal(textBlock, [
+      /(\d[\d.,]*\s*[km]?)\s*impressions?/,
+      /(\d[\d.,]*\s*[km]?)\s*views?/
+    ]);
+    const reactions = parseMetricOptionalLocal(textBlock, [
+      /(\d[\d.,]*\s*[km]?)\s*reactions?/,
+      /(\d[\d.,]*\s*[km]?)\s*likes?/,
+      /and\s+(\d[\d.,]*\s*[km]?)\s+others\s+reacted/,
+      /(\d[\d.,]*\s*[km]?)\s+others\s+reacted/
+    ]);
+    const comments = parseMetricOptionalLocal(textBlock, [
+      /(\d[\d.,]*\s*[km]?)\s*comments?/
+    ]);
+    const reposts = parseMetricOptionalLocal(textBlock, [
+      /(\d[\d.,]*\s*[km]?)\s*reposts?/,
+      /(\d[\d.,]*\s*[km]?)\s*shares?/
+    ]);
 
     const post = {
       id: urn || postLink || `${createdAt}-${bodyText.slice(0, 20)}`,
@@ -637,9 +663,10 @@ async function extractLinkedInPostsFromDom(options = {}) {
       reactions,
       comments,
       reposts,
-      clicks: 0,
-      saves: 0,
-      profileVisits: 0,
+      // These metrics are usually not present in feed/activity DOM; keep as null (unknown), not zero.
+      clicks: null,
+      saves: null,
+      profileVisits: null,
       source: 'chrome-extension'
     };
 

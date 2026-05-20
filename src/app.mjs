@@ -53,6 +53,35 @@ function formatNumber(value) {
   return numberFormat.format(value || 0);
 }
 
+function getMetricValue(post, field) {
+  const raw = post?.[field];
+  if (raw === null || raw === undefined || raw === '') {
+    return null;
+  }
+
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) {
+    return null;
+  }
+
+  if (
+    value === 0 &&
+    String(post?.source || '').toLowerCase() === 'chrome-extension' &&
+    ['clicks', 'saves', 'profileVisits'].includes(field)
+  ) {
+    return null;
+  }
+
+  return value;
+}
+
+function formatMetricValue(value) {
+  if (value === null || value === undefined) {
+    return 'N/A';
+  }
+  return formatNumber(value);
+}
+
 function getPostEngagement(post) {
   return (
     Number(post.engagement) ||
@@ -585,13 +614,13 @@ function renderDetail() {
     ['Impressions', formatNumber(post.impressions || 0)],
     ['Engagement', formatNumber(getPostEngagement(post))],
     ['Engagement rate', percentFormat.format(getEngagementRate(post))],
-    ['Reactions', formatNumber(post.reactions || 0)],
-    ['Comments', formatNumber(post.comments || 0)],
-    ['Reposts', formatNumber(post.reposts || 0)],
-    ['Clicks', formatNumber(post.clicks || 0)],
-    ['Saves', formatNumber(post.saves || 0)],
-    ['Video views', formatNumber(post.videoViews || 0)],
-    ['Profile visits', formatNumber(post.profileVisits || 0)]
+    ['Reactions', formatMetricValue(getMetricValue(post, 'reactions'))],
+    ['Comments', formatMetricValue(getMetricValue(post, 'comments'))],
+    ['Reposts', formatMetricValue(getMetricValue(post, 'reposts'))],
+    ['Clicks', formatMetricValue(getMetricValue(post, 'clicks'))],
+    ['Saves', formatMetricValue(getMetricValue(post, 'saves'))],
+    ['Video views', formatMetricValue(getMetricValue(post, 'videoViews'))],
+    ['Profile visits', formatMetricValue(getMetricValue(post, 'profileVisits'))]
   ];
 
   const boxes = stats

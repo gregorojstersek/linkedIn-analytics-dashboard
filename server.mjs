@@ -36,6 +36,30 @@ function toFiniteNumber(value) {
   return Number.isFinite(num) && num >= 0 ? num : 0;
 }
 
+function toOptionalFiniteNumber(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  const num = Number(value);
+  return Number.isFinite(num) && num >= 0 ? num : null;
+}
+
+function maxKnownValue(a, b) {
+  const left = toOptionalFiniteNumber(a);
+  const right = toOptionalFiniteNumber(b);
+
+  if (left === null && right === null) {
+    return null;
+  }
+  if (left === null) {
+    return right;
+  }
+  if (right === null) {
+    return left;
+  }
+  return Math.max(left, right);
+}
+
 function sanitizeContentType(value) {
   const normalized = String(value || '').trim().toLowerCase();
   if (['text', 'image', 'video', 'document', 'poll', 'article'].includes(normalized)) {
@@ -84,16 +108,17 @@ function normalizePost(post, index = 0) {
       : new Date(createdAtValue).toISOString();
 
   const impressions = toFiniteNumber(post.impressions || post.views || post.viewCount);
-  const reactions = toFiniteNumber(post.reactions || post.likes);
-  const comments = toFiniteNumber(post.comments || post.commentCount);
-  const reposts = toFiniteNumber(post.reposts || post.shares || post.repostCount);
-  const clicks = toFiniteNumber(post.clicks || post.clickCount);
-  const saves = toFiniteNumber(post.saves || post.saveCount);
-  const videoViews = toFiniteNumber(post.videoViews || post.videoViewCount);
-  const profileVisits = toFiniteNumber(post.profileVisits || post.profileViewCount);
+  const reactions = toOptionalFiniteNumber(post.reactions ?? post.likes);
+  const comments = toOptionalFiniteNumber(post.comments ?? post.commentCount);
+  const reposts = toOptionalFiniteNumber(post.reposts ?? post.shares ?? post.repostCount);
+  const clicks = toOptionalFiniteNumber(post.clicks ?? post.clickCount);
+  const saves = toOptionalFiniteNumber(post.saves ?? post.saveCount);
+  const videoViews = toOptionalFiniteNumber(post.videoViews ?? post.videoViewCount);
+  const profileVisits = toOptionalFiniteNumber(post.profileVisits ?? post.profileViewCount);
 
   const engagement =
-    toFiniteNumber(post.engagement) || reactions + comments + reposts + clicks + saves;
+    toFiniteNumber(post.engagement) ||
+    (reactions || 0) + (comments || 0) + (reposts || 0) + (clicks || 0) + (saves || 0);
 
   const postUrl =
     String(post.postUrl || post.url || post.link || '').trim() ||
@@ -142,16 +167,20 @@ function mergePosts(oldPost, newPost) {
   merged.isRepost = Boolean(oldPost.isRepost || newPost.isRepost);
 
   merged.impressions = Math.max(oldPost.impressions || 0, newPost.impressions || 0);
-  merged.reactions = Math.max(oldPost.reactions || 0, newPost.reactions || 0);
-  merged.comments = Math.max(oldPost.comments || 0, newPost.comments || 0);
-  merged.reposts = Math.max(oldPost.reposts || 0, newPost.reposts || 0);
-  merged.clicks = Math.max(oldPost.clicks || 0, newPost.clicks || 0);
-  merged.saves = Math.max(oldPost.saves || 0, newPost.saves || 0);
-  merged.videoViews = Math.max(oldPost.videoViews || 0, newPost.videoViews || 0);
-  merged.profileVisits = Math.max(oldPost.profileVisits || 0, newPost.profileVisits || 0);
+  merged.reactions = maxKnownValue(oldPost.reactions, newPost.reactions);
+  merged.comments = maxKnownValue(oldPost.comments, newPost.comments);
+  merged.reposts = maxKnownValue(oldPost.reposts, newPost.reposts);
+  merged.clicks = maxKnownValue(oldPost.clicks, newPost.clicks);
+  merged.saves = maxKnownValue(oldPost.saves, newPost.saves);
+  merged.videoViews = maxKnownValue(oldPost.videoViews, newPost.videoViews);
+  merged.profileVisits = maxKnownValue(oldPost.profileVisits, newPost.profileVisits);
   merged.engagement =
     Math.max(oldPost.engagement || 0, newPost.engagement || 0) ||
-    merged.reactions + merged.comments + merged.reposts + merged.clicks + merged.saves;
+    (merged.reactions || 0) +
+      (merged.comments || 0) +
+      (merged.reposts || 0) +
+      (merged.clicks || 0) +
+      (merged.saves || 0);
 
   return merged;
 }
