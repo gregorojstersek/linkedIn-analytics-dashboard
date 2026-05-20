@@ -157,8 +157,15 @@ button.danger {
   font-size: 0.94rem;
 }
 
+.content-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
 .table-panel {
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
 
 .table-wrap {
@@ -275,7 +282,9 @@ tbody tr.active {
 }
 
 .detail-panel {
-  margin-bottom: 16px;
+  margin-bottom: 0;
+  position: sticky;
+  top: 14px;
 }
 
 .detail-panel .panel-head h3 {
@@ -345,6 +354,14 @@ tbody tr.active {
 
   .filter-row {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .content-split {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-panel {
+    position: static;
   }
 
   .panel-head {
