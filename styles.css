@@ -448,6 +448,10 @@ tbody tr.active {
   line-height: 1.4;
 }
 
+.detail-title-structured {
+  white-space: pre-line;
+}
+
 .detail-image {
   width: 100%;
   max-height: 220px;

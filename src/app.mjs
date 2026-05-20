@@ -111,7 +111,10 @@ function truncate(text, max = 90) {
 
 function getDisplayText(post) {
   function stripLeadingMetadata(text) {
-    let normalized = String(text || '').replace(/\s+/g, ' ').trim();
+    let normalized = String(text || '')
+      .replace(/\r/g, '')
+      .replace(/\u00a0/g, ' ')
+      .trim();
     if (!normalized) {
       return '';
     }
@@ -136,7 +139,10 @@ function getDisplayText(post) {
       }
     }
 
-    return normalized;
+    return normalized
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
   }
 
   const raw = stripLeadingMetadata(post.text || '');
@@ -147,7 +153,7 @@ function getDisplayText(post) {
 }
 
 function getPostTitle(post, maxWords = 8) {
-  const words = getDisplayText(post).split(' ').filter(Boolean);
+  const words = getDisplayText(post).replace(/\s+/g, ' ').split(' ').filter(Boolean);
   if (words.length <= maxWords) {
     return words.join(' ');
   }
@@ -553,7 +559,7 @@ function renderTable() {
 
     const snippet = document.createElement('div');
     snippet.className = 'post-snippet';
-    snippet.textContent = truncate(getDisplayText(post), 96);
+    snippet.textContent = truncate(getDisplayText(post).replace(/\s+/g, ' '), 96);
 
     copyWrap.appendChild(title);
     copyWrap.appendChild(snippet);
@@ -630,7 +636,7 @@ function renderDetail() {
     )
     .join('');
 
-  const postText = escapeHtml(post.text || 'No text captured for this post.');
+  const postText = escapeHtml(getDisplayText(post) || 'No text captured for this post.');
   const safeUrl = escapeHtml(post.postUrl || '#');
   const postDate = escapeHtml(getPostDateLabel(post));
   const postType = escapeHtml(post.contentType || 'text');
@@ -642,7 +648,7 @@ function renderDetail() {
 
   elements.detailBody.innerHTML = `
     ${imageBlock}
-    <p class="detail-title">${postText}</p>
+    <p class="detail-title detail-title-structured">${postText}</p>
     <p><strong>Date:</strong> ${postDate}</p>
     <p><strong>Type:</strong> <span class="badge">${postType}</span></p>
     <p><strong>Origin:</strong> <span class="badge ${isRepost(post) ? 'badge-repost' : 'badge-original'}">${postOrigin}</span></p>

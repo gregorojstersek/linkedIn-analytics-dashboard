@@ -148,6 +148,22 @@ async function extractLinkedInPostsFromDom(options = {}) {
     return null;
   }
 
+  function parseFromSelectorTextLocal(node, selectors, patterns) {
+    for (const selector of selectors) {
+      for (const el of node.querySelectorAll(selector)) {
+        const text = String(el.innerText || el.textContent || '').trim();
+        if (!text) {
+          continue;
+        }
+        const value = parseMetricOptionalLocal(text, patterns);
+        if (value !== null) {
+          return value;
+        }
+      }
+    }
+    return null;
+  }
+
   function inferContentTypeLocal(postNode) {
     if (postNode.querySelector('video')) {
       return 'video';
@@ -424,6 +440,52 @@ async function extractLinkedInPostsFromDom(options = {}) {
     return node.parentElement || node;
   }
 
+  function findPostRootFromAnchor(anchor) {
+    let current = anchor;
+    let best = null;
+    let bestScore = -Infinity;
+
+    for (let depth = 0; depth < 16 && current; depth += 1) {
+      const text = String(current.innerText || '').trim();
+      const linkCount = current.querySelectorAll(anchorSelector).length;
+      const hasUrn = Boolean(
+        current.getAttribute('data-urn') ||
+          current.getAttribute('data-id') ||
+          current.querySelector('[data-urn], [data-id]')
+      );
+      const hasSocialCounts =
+        current.querySelector('.social-details-social-counts') ||
+        current.querySelector('[class*=\"social-details-social-counts\"]') ||
+        current.querySelector('button[aria-label*=\"Comment\" i]') ||
+        current.querySelector('button[aria-label*=\"Repost\" i]');
+
+      const textLength = text.length;
+      if (textLength < 50 || textLength > 7000 || linkCount > 14) {
+        current = current.parentElement;
+        continue;
+      }
+
+      let score = 0;
+      if (hasUrn) {
+        score += 50;
+      }
+      if (hasSocialCounts) {
+        score += 35;
+      }
+      score += Math.min(30, Math.floor(textLength / 140));
+      score -= depth;
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = current;
+      }
+
+      current = current.parentElement;
+    }
+
+    return best || findBestContext(anchor);
+  }
+
   let scrollRounds = 0;
   let stableRounds = 0;
   let lastHeight = 0;
@@ -591,8 +653,8 @@ async function extractLinkedInPostsFromDom(options = {}) {
   ];
   for (const anchor of postAnchors) {
     const card =
-      anchor.closest('article, .feed-shared-update-v2, .occludable-update, [data-urn], [data-id]') ||
-      findBestContext(anchor);
+      anchor.closest('[data-urn], [data-id], article, .feed-shared-update-v2, .occludable-update') ||
+      findPostRootFromAnchor(anchor);
     if (!card || unique.has(card)) {
       continue;
     }
@@ -632,23 +694,67 @@ async function extractLinkedInPostsFromDom(options = {}) {
       new Date().toISOString();
 
     const textBlock = node.innerText || '';
-    const impressions = parseMetricLocal(textBlock, [
-      /(\d[\d.,]*\s*[km]?)\s*impressions?/,
-      /(\d[\d.,]*\s*[km]?)\s*views?/
-    ]);
-    const reactions = parseMetricOptionalLocal(textBlock, [
-      /(\d[\d.,]*\s*[km]?)\s*reactions?/,
-      /(\d[\d.,]*\s*[km]?)\s*likes?/,
-      /and\s+(\d[\d.,]*\s*[km]?)\s+others\s+reacted/,
-      /(\d[\d.,]*\s*[km]?)\s+others\s+reacted/
-    ]);
-    const comments = parseMetricOptionalLocal(textBlock, [
-      /(\d[\d.,]*\s*[km]?)\s*comments?/
-    ]);
-    const reposts = parseMetricOptionalLocal(textBlock, [
-      /(\d[\d.,]*\s*[km]?)\s*reposts?/,
-      /(\d[\d.,]*\s*[km]?)\s*shares?/
-    ]);
+    const impressionsFromSelectors = parseFromSelectorTextLocal(
+      node,
+      [
+        '.social-details-social-counts__impressions',
+        '[class*=\"social-details-social-counts\"]',
+        'span[aria-label*=\"impression\" i]',
+        'span[aria-label*=\"view\" i]'
+      ],
+      [/(\d[\d.,]*\s*[km]?)\s*impressions?/, /(\d[\d.,]*\s*[km]?)\s*views?/]
+    );
+    const reactionsFromSelectors = parseFromSelectorTextLocal(
+      node,
+      [
+        '.social-details-social-counts__reactions-count',
+        '[class*=\"social-details-social-counts\"]',
+        'span[aria-label*=\"reaction\" i]',
+        'span[aria-label*=\"like\" i]'
+      ],
+      [
+        /(\d[\d.,]*\s*[km]?)\s*reactions?/,
+        /(\d[\d.,]*\s*[km]?)\s*likes?/,
+        /and\s+(\d[\d.,]*\s*[km]?)\s+others\s+reacted/,
+        /(\d[\d.,]*\s*[km]?)\s+others\s+reacted/
+      ]
+    );
+    const commentsFromSelectors = parseFromSelectorTextLocal(
+      node,
+      [
+        '.social-details-social-counts__comments',
+        '[class*=\"social-details-social-counts\"]',
+        'span[aria-label*=\"comment\" i]'
+      ],
+      [/(\d[\d.,]*\s*[km]?)\s*comments?/]
+    );
+    const repostsFromSelectors = parseFromSelectorTextLocal(
+      node,
+      [
+        'button[aria-label*=\"repost\" i]',
+        'button[aria-label*=\"share\" i]',
+        '[class*=\"social-details-social-counts\"]'
+      ],
+      [/(\d[\d.,]*\s*[km]?)\s*reposts?/, /(\d[\d.,]*\s*[km]?)\s*shares?/]
+    );
+
+    const impressions =
+      impressionsFromSelectors ??
+      parseMetricLocal(textBlock, [/(\d[\d.,]*\s*[km]?)\s*impressions?/, /(\d[\d.,]*\s*[km]?)\s*views?/]);
+    const reactions =
+      reactionsFromSelectors ??
+      parseMetricOptionalLocal(textBlock, [
+        /(\d[\d.,]*\s*[km]?)\s*reactions?/,
+        /(\d[\d.,]*\s*[km]?)\s*likes?/,
+        /and\s+(\d[\d.,]*\s*[km]?)\s+others\s+reacted/,
+        /(\d[\d.,]*\s*[km]?)\s+others\s+reacted/
+      ]);
+    const comments =
+      commentsFromSelectors ??
+      parseMetricOptionalLocal(textBlock, [/(\d[\d.,]*\s*[km]?)\s*comments?/]);
+    const reposts =
+      repostsFromSelectors ??
+      parseMetricOptionalLocal(textBlock, [/(\d[\d.,]*\s*[km]?)\s*reposts?/, /(\d[\d.,]*\s*[km]?)\s*shares?/]);
 
     const post = {
       id: urn || postLink || `${createdAt}-${bodyText.slice(0, 20)}`,
