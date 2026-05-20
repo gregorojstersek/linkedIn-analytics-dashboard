@@ -132,7 +132,56 @@ function getDateLabel(dateValue) {
   return dateFormat.format(new Date(timestamp));
 }
 
-function withinRange(dateValue, range) {
+function decodeLinkedInActivityTimestamp(input) {
+  const raw = String(input || '');
+  const match = raw.match(/activity[:/-](\d{15,20})/i) || raw.match(/(\d{15,20})/);
+  if (!match) {
+    return null;
+  }
+
+  try {
+    const id = BigInt(match[1]);
+    const ms = Number(id >> 22n);
+    if (!Number.isFinite(ms)) {
+      return null;
+    }
+    const min = Date.parse('2010-01-01T00:00:00.000Z');
+    const max = Date.now() + 2 * 24 * 60 * 60 * 1000;
+    if (ms < min || ms > max) {
+      return null;
+    }
+    return ms;
+  } catch {
+    return null;
+  }
+}
+
+function getPublishedTimestamp(post) {
+  const fromActivityId =
+    decodeLinkedInActivityTimestamp(post.postUrl) ||
+    decodeLinkedInActivityTimestamp(post.sourceId) ||
+    decodeLinkedInActivityTimestamp(post.id);
+  if (fromActivityId) {
+    return fromActivityId;
+  }
+
+  const fallback = Date.parse(post.createdAt || '');
+  if (!Number.isNaN(fallback)) {
+    return fallback;
+  }
+
+  return null;
+}
+
+function getPostDateLabel(post) {
+  const ts = getPublishedTimestamp(post);
+  if (!ts) {
+    return 'Unknown date';
+  }
+  return dateFormat.format(new Date(ts));
+}
+
+function withinRangePost(post, range) {
   if (range === 'all') {
     return true;
   }
@@ -142,8 +191,8 @@ function withinRange(dateValue, range) {
     return true;
   }
 
-  const timestamp = Date.parse(dateValue);
-  if (Number.isNaN(timestamp)) {
+  const timestamp = getPublishedTimestamp(post);
+  if (!timestamp) {
     return false;
   }
 
@@ -155,7 +204,7 @@ function sortPosts(posts, sortBy) {
   const sorted = [...posts];
 
   if (sortBy === 'oldest') {
-    sorted.sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+    sorted.sort((a, b) => (getPublishedTimestamp(a) || 0) - (getPublishedTimestamp(b) || 0));
     return sorted;
   }
 
@@ -174,7 +223,7 @@ function sortPosts(posts, sortBy) {
     return sorted;
   }
 
-  sorted.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  sorted.sort((a, b) => (getPublishedTimestamp(b) || 0) - (getPublishedTimestamp(a) || 0));
   return sorted;
 }
 
@@ -182,7 +231,7 @@ function applyFilters() {
   const searchLower = state.filters.search.toLowerCase();
 
   let next = state.posts.filter((post) => {
-    if (!withinRange(post.createdAt, state.filters.range)) {
+    if (!withinRangePost(post, state.filters.range)) {
       return false;
     }
 
@@ -243,10 +292,11 @@ function buildTrendSeries(posts) {
   const byDay = new Map();
 
   for (const post of posts) {
-    const date = new Date(post.createdAt);
-    if (Number.isNaN(date.getTime())) {
+    const timestamp = getPublishedTimestamp(post);
+    if (!timestamp) {
       continue;
     }
+    const date = new Date(timestamp);
 
     const key = date.toISOString().slice(0, 10);
     const existing = byDay.get(key) || { impressions: 0, engagement: 0 };
@@ -415,7 +465,7 @@ function renderTable() {
     row.dataset.postId = post.id;
 
     const dateCell = document.createElement('td');
-    dateCell.textContent = getDateLabel(post.createdAt);
+    dateCell.textContent = getPostDateLabel(post);
 
     const postCell = document.createElement('td');
     const media = document.createElement('div');
@@ -524,7 +574,7 @@ function renderDetail() {
 
   const postText = escapeHtml(post.text || 'No text captured for this post.');
   const safeUrl = escapeHtml(post.postUrl || '#');
-  const postDate = escapeHtml(getDateLabel(post.createdAt));
+  const postDate = escapeHtml(getPostDateLabel(post));
   const postType = escapeHtml(post.contentType || 'text');
   const postOrigin = isRepost(post) ? 'Repost' : 'Original';
   const previewImage = getPreviewImageUrl(post);

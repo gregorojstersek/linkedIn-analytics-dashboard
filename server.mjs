@@ -44,12 +44,44 @@ function sanitizeContentType(value) {
   return 'text';
 }
 
+function decodeLinkedInActivityTimestamp(input) {
+  const raw = String(input || '');
+  const match = raw.match(/activity[:/-](\d{15,20})/i) || raw.match(/(\d{15,20})/);
+  if (!match) {
+    return null;
+  }
+
+  try {
+    const id = BigInt(match[1]);
+    const ms = Number(id >> 22n);
+    if (!Number.isFinite(ms)) {
+      return null;
+    }
+
+    const min = Date.parse('2010-01-01T00:00:00.000Z');
+    const max = Date.now() + 2 * 24 * 60 * 60 * 1000;
+    if (ms < min || ms > max) {
+      return null;
+    }
+
+    return ms;
+  } catch {
+    return null;
+  }
+}
+
 function normalizePost(post, index = 0) {
   const text = String(post.text || post.caption || post.description || '').trim();
   const createdAtValue = post.createdAt || post.publishedAt || post.date || new Date().toISOString();
-  const createdAt = Number.isNaN(Date.parse(createdAtValue))
-    ? new Date().toISOString()
-    : new Date(createdAtValue).toISOString();
+  const decodedTimestamp =
+    decodeLinkedInActivityTimestamp(post.postUrl) ||
+    decodeLinkedInActivityTimestamp(post.sourceId) ||
+    decodeLinkedInActivityTimestamp(post.id);
+  const createdAt = decodedTimestamp
+    ? new Date(decodedTimestamp).toISOString()
+    : Number.isNaN(Date.parse(createdAtValue))
+      ? new Date().toISOString()
+      : new Date(createdAtValue).toISOString();
 
   const impressions = toFiniteNumber(post.impressions || post.views || post.viewCount);
   const reactions = toFiniteNumber(post.reactions || post.likes);

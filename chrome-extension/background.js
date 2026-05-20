@@ -175,9 +175,44 @@ async function extractLinkedInPostsFromDom(options = {}) {
   }
 
   function extractPreviewImageUrl(node) {
-    const images = [...node.querySelectorAll('img')];
+    const prioritySelectors = [
+      '.update-components-image__container img',
+      '.update-components-image img',
+      '.feed-shared-image__container img',
+      '.update-components-article img',
+      '.update-components-document img',
+      '.ivm-image-view-model img',
+      'img'
+    ];
+    const images = [];
+    for (const selector of prioritySelectors) {
+      for (const image of node.querySelectorAll(selector)) {
+        if (!images.includes(image)) {
+          images.push(image);
+        }
+      }
+    }
+
+    function firstUrlFromSrcset(srcset) {
+      const candidate = String(srcset || '')
+        .split(',')
+        .map((part) => part.trim().split(' ')[0])
+        .find(Boolean);
+      return candidate || '';
+    }
+
     for (const image of images) {
-      const src = String(image.currentSrc || image.src || '').trim();
+      const src = String(
+        image.currentSrc ||
+          image.src ||
+          image.getAttribute('src') ||
+          image.getAttribute('data-delayed-url') ||
+          image.getAttribute('data-ghost-url') ||
+          image.getAttribute('data-src') ||
+          image.getAttribute('data-test-image-url') ||
+          firstUrlFromSrcset(image.getAttribute('srcset')) ||
+          ''
+      ).trim();
       if (!src || src.startsWith('data:')) {
         continue;
       }
@@ -198,6 +233,22 @@ async function extractLinkedInPostsFromDom(options = {}) {
         return src;
       }
     }
+
+    const backgroundCandidates = [
+      ...node.querySelectorAll('[style*="background-image"]')
+    ];
+    for (const el of backgroundCandidates) {
+      const style = String(el.getAttribute('style') || '');
+      const match = style.match(/url\((['"]?)(https?:\/\/[^'")]+)\1\)/i);
+      if (!match) {
+        continue;
+      }
+      const src = match[2];
+      if (src.toLowerCase().includes('media.licdn.com')) {
+        return src;
+      }
+    }
+
     return '';
   }
 
@@ -514,6 +565,9 @@ function dedupePosts(posts) {
     byKey.set(key, {
       ...previous,
       ...post,
+      createdAt: previous.createdAt || post.createdAt,
+      imageUrl: post.imageUrl || previous.imageUrl || '',
+      isRepost: Boolean(previous.isRepost || post.isRepost),
       impressions: Math.max(Number(previous.impressions || 0), Number(post.impressions || 0)),
       reactions: Math.max(Number(previous.reactions || 0), Number(post.reactions || 0)),
       comments: Math.max(Number(previous.comments || 0), Number(post.comments || 0)),
